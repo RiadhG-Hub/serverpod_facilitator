@@ -1,7 +1,6 @@
-
-
 class ServerpodModel {
-  const ServerpodModel();
+  final List<String>? customSql;
+  const ServerpodModel({this.customSql});
 }
 
 class PgVarchar {
@@ -35,4 +34,39 @@ class PgForeignKey {
   final String table;
   final String column;
   const PgForeignKey(this.table, this.column);
+}
+
+class PgBigInt {
+  const PgBigInt();
+}
+
+class PgJson {
+  const PgJson();
+}
+
+class PgJsonb {
+  const PgJsonb();
+}
+
+class PgUuid {
+  const PgUuid();
+}
+
+class PgNumeric {
+  final int precision;
+  final int scale;
+  const PgNumeric(this.precision, this.scale);
+}
+
+class PgTimestamp {
+  const PgTimestamp();
+}
+
+class PgTimestamptz {
+  const PgTimestamptz();
+}
+
+class PgCustomSql {
+  final String sql;
+  const PgCustomSql(this.sql);
 }

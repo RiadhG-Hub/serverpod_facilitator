@@ -1,8 +1,7 @@
-
-
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
+
 import '../models/schema.dart';
 
 class SchemaParser {
@@ -19,15 +18,39 @@ class _SchemaVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitClassDeclaration(ClassDeclaration node) {
-    final hasServerpodModel = node.metadata.any((m) => m.name.name == 'ServerpodModel');
-    if (!hasServerpodModel) return;
+    Annotation? serverpodModelAnnotation;
+    try {
+      serverpodModelAnnotation = node.metadata.firstWhere(
+        (m) => m.name.name == 'ServerpodModel',
+      );
+    } catch (e) {
+      return;
+    }
+
+    final customSql = <String>[];
+    final args = serverpodModelAnnotation.arguments?.arguments;
+    if (args != null) {
+      for (final arg in args) {
+        if (arg is NamedExpression && arg.name.label.name == 'customSql') {
+          if (arg.expression is ListLiteral) {
+            final list = arg.expression as ListLiteral;
+            for (final element in list.elements) {
+              if (element is StringLiteral) {
+                final val = element.stringValue;
+                if (val != null) customSql.add(val);
+              }
+            }
+          }
+        }
+      }
+    }
 
     final fields = <FieldDefinition>[];
     for (final member in node.members) {
       if (member is FieldDeclaration) {
         final type = member.fields.type;
         final annotations = _parseAnnotations(member.metadata);
-        
+
         for (final variable in member.fields.variables) {
           fields.add(FieldDefinition(
             name: variable.name.lexeme,
@@ -42,13 +65,16 @@ class _SchemaVisitor extends RecursiveAstVisitor<void> {
     models.add(ModelDefinition(
       name: node.name.lexeme,
       fields: fields,
+      customSql: customSql,
     ));
   }
 
   String _getBaseType(TypeAnnotation? type) {
     if (type == null) return 'dynamic';
     final source = type.toSource();
-    return source.endsWith('?') ? source.substring(0, source.length - 1) : source;
+    return source.endsWith('?')
+        ? source.substring(0, source.length - 1)
+        : source;
   }
 
   List<AnnotationDefinition> _parseAnnotations(NodeList<Annotation> metadata) {
@@ -75,7 +101,8 @@ class _SchemaVisitor extends RecursiveAstVisitor<void> {
             String? indexName;
             if (args != null && args.isNotEmpty) {
               final firstArg = args.first;
-              if (firstArg is NamedExpression && firstArg.name.label.name == 'name') {
+              if (firstArg is NamedExpression &&
+                  firstArg.name.label.name == 'name') {
                 indexName = (firstArg.expression as StringLiteral).stringValue;
               } else if (firstArg is StringLiteral) {
                 indexName = firstArg.stringValue;
@@ -99,6 +126,39 @@ class _SchemaVisitor extends RecursiveAstVisitor<void> {
               if (table != null && column != null) {
                 results.add(ForeignKeyAnnotation(table, column));
               }
+            }
+            break;
+          case 'PgBigInt':
+            results.add(BigIntAnnotation());
+            break;
+          case 'PgJson':
+            results.add(JsonAnnotation());
+            break;
+          case 'PgJsonb':
+            results.add(JsonbAnnotation());
+            break;
+          case 'PgUuid':
+            results.add(UuidAnnotation());
+            break;
+          case 'PgNumeric':
+            if (args != null && args.length >= 2) {
+              final precision = (args[0] as IntegerLiteral).value;
+              final scale = (args[1] as IntegerLiteral).value;
+              if (precision != null && scale != null) {
+                results.add(NumericAnnotation(precision, scale));
+              }
+            }
+            break;
+          case 'PgTimestamp':
+            results.add(TimestampAnnotation());
+            break;
+          case 'PgTimestamptz':
+            results.add(TimestamptzAnnotation());
+            break;
+          case 'PgCustomSql':
+            if (args != null && args.isNotEmpty) {
+              final sql = (args.first as StringLiteral).stringValue;
+              if (sql != null) results.add(CustomSqlAnnotation(sql));
             }
             break;
         }

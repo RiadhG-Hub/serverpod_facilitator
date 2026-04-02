@@ -1,8 +1,13 @@
 class ModelDefinition {
   final String name;
   final List<FieldDefinition> fields;
+  final List<String> customSql;
 
-  ModelDefinition({required this.name, required this.fields});
+  ModelDefinition({
+    required this.name,
+    required this.fields,
+    this.customSql = const [],
+  });
 }
 
 class FieldDefinition {
@@ -46,4 +51,27 @@ class ForeignKeyAnnotation extends AnnotationDefinition {
   final String table;
   final String column;
   ForeignKeyAnnotation(this.table, this.column);
+}
+
+class BigIntAnnotation extends AnnotationDefinition {}
+
+class JsonAnnotation extends AnnotationDefinition {}
+
+class JsonbAnnotation extends AnnotationDefinition {}
+
+class UuidAnnotation extends AnnotationDefinition {}
+
+class NumericAnnotation extends AnnotationDefinition {
+  final int precision;
+  final int scale;
+  NumericAnnotation(this.precision, this.scale);
+}
+
+class TimestampAnnotation extends AnnotationDefinition {}
+
+class TimestamptzAnnotation extends AnnotationDefinition {}
+
+class CustomSqlAnnotation extends AnnotationDefinition {
+  final String sql;
+  CustomSqlAnnotation(this.sql);
 }

@@ -23,6 +23,13 @@ class YamlMapper {
       }
     }
 
+    if (model.customSql.isNotEmpty) {
+      buffer.writeln('customSql:');
+      for (final sql in model.customSql) {
+        buffer.writeln('  - $sql');
+      }
+    }
+
     return buffer.toString();
   }
 
@@ -55,6 +62,16 @@ class YamlMapper {
       if (ann is VarcharAnnotation)
         return 'String, database=varchar(${ann.length})';
       if (ann is TextAnnotation) return 'String, database=text';
+      if (ann is BigIntAnnotation) return 'int, database=bigint';
+      if (ann is JsonAnnotation) return 'Map<String, dynamic>, database=json';
+      if (ann is JsonbAnnotation) return 'Map<String, dynamic>, database=jsonb';
+      if (ann is UuidAnnotation) return 'String, database=uuid';
+      if (ann is NumericAnnotation)
+        return 'double, database=numeric(${ann.precision}, ${ann.scale})';
+      if (ann is TimestampAnnotation) return 'DateTime, database=timestamp';
+      if (ann is TimestamptzAnnotation)
+        return 'DateTime, database=timestamptz';
+      if (ann is CustomSqlAnnotation) return '${field.dartType}, database=${ann.sql}';
     }
 
     switch (field.dartType) {
@@ -91,8 +108,7 @@ class YamlMapper {
         } else if (ann is IndexAnnotation) {
           indexes.add(
             _IndexInfo(
-              name:
-                  ann.name ??
+              name: ann.name ??
                   '${_toSnakeCase(model.name)}_${_toSnakeCase(field.name)}_idx',
               fields: field.name,
               unique: false,
