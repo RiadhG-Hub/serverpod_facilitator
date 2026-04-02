@@ -1,0 +1,18 @@
+name: serverpod_facilitator
+description: "A code-first schema system for Serverpod with a focus on developer trust and transparency."
+version: 0.1.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  analyzer: ^6.0.0
+  args: ^2.4.0
+  yaml: ^3.1.2
+  path: ^1.8.3
+  collection: ^1.17.1
+
+dev_dependencies:
+  test: ^1.24.0
+  mocktail: ^1.0.0
