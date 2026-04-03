@@ -1,85 +1,173 @@
-# Serverpod Facilitator
+# 🚀 Serverpod Facilitator
 
-A code-first schema system for Serverpod.
+**The ultimate developer platform for Serverpod.**
 
-## Features
+`serverpod_facilitator` transforms Serverpod into a top-tier backend framework competitor to Node.js ecosystems and Firebase. It provides a code-first, zero-magic experience with Prisma-level schema management and Firebase-level speed.
 
-- **Code-First**: Define your Serverpod models using Dart classes and annotations.
-- **PostgreSQL Type Support**: Extensive support for PostgreSQL data types (Varchar, Text, BigInt, Jsonb, Uuid, Numeric, Timestamp, etc.).
-- **Custom SQL**: Support for custom SQL requests (e.g., specialized indexes, views) directly in your model definitions.
-- **Safe & Transparent**: Dry-run mode and confirmation before applying changes.
-- **Diff Engine**: See what changed before applying.
-- **AST Parser**: Reliable parsing of Dart source files.
+## 🎯 Objective
 
-## Usage
+- **Firebase-level speed** ⚡: Bootstrap and deploy in minutes.
+- **Prisma-level schema & migrations** 🧬: Type-safe, declarative database management.
+- **Node.js-level extensibility** 🔌: Powerful plugin system.
+- **Flutter-first full-stack experience** 📱: Seamless integration with Flutter.
 
-1. Define your models in `lib/models/`:
+---
+
+## 🏗 Core Modules
+
+- **CLI**: Unified command-line interface.
+- **Parser**: AST-based Dart parser for extracting models and annotations.
+- **Mapper**: Deterministic Dart → Serverpod YAML mapper.
+- **Diff Engine**: Prisma-like detection of schema changes.
+- **Migration Engine**: Automatic SQL migration generator.
+- **Generators**: Specialized generators for Auth, Admin Panels, and Clients.
+- **AI Tools**: Natural language backend generation.
+
+---
+
+## ⚡ Quick Start
+
+### 1. Installation
+
+Add `serverpod_facilitator` to your project's `pubspec.yaml`:
+
+```yaml
+dependencies:
+  serverpod_facilitator: ^1.0.0
+```
+
+### 2. Create a New Project
+
+Bootstrap a complete Serverpod + Flutter project in under 1 minute:
+
+```bash
+dart bin/facilitator.dart create my_awesome_app
+```
+
+### 3. Define Your Models
+
+Create Dart classes in `lib/models/` using our PostgreSQL-aware annotations:
 
 ```dart
-import '../annotations/annotations.dart';
+import 'package:serverpod_facilitator/annotations/annotations.dart';
 
-@ServerpodModel(customSql: [
-  'CREATE INDEX profile_bio_trgm_idx ON profile USING gin (bio gin_trgm_ops);',
-])
-class Profile {
+@ServerpodModel()
+class User {
+  @PgPrimaryKey()
+  int? id;
+  
   @PgVarchar(255)
-  late String name;
-
   @PgUnique()
+  String email;
+  
   @PgText()
-  late String bio;
-
-  @PgBigInt()
-  late int points;
-
-  @PgJsonb()
-  late Map<String, dynamic> metadata;
-
+  String name;
+  
+  @PgTimestamp()
   @PgDefault('now()')
-  late DateTime createdAt;
+  DateTime createdAt;
+
+  User({
+    this.id,
+    required this.email,
+    required this.name,
+    required this.createdAt,
+  });
 }
 ```
 
-2. Run the facilitator:
+### 4. Generate Schema & Migrations
 
 ```bash
-# Validate your schema
-dart bin/facilitator.dart validate
-
-# See the diff
-dart bin/facilitator.dart diff
-
-# Generate YAML files
+# Generate Serverpod YAML files
 dart bin/facilitator.dart generate --apply
+
+# Generate SQL migrations
+dart bin/facilitator.dart migration
 ```
 
-## Available Annotations
+---
 
-- `@ServerpodModel({List<String>? customSql})`
-- `@PgVarchar(length)`
-- `@PgText()`
-- `@PgUnique()`
-- `@PgIndex({String? name})`
-- `@PgDefault(value)`
-- `@PgPrimaryKey()`
-- `@PgForeignKey(table, column)`
-- `@PgBigInt()`
-- `@PgJson()`
-- `@PgJsonb()`
-- `@PgUuid()`
-- `@PgNumeric(precision, scale)`
-- `@PgTimestamp()`
-- `@PgTimestamptz()`
-- `@PgCustomSql(sql)` - Use for specific field database overrides
+## 🏷 Available Annotations
 
-## Commands
+| Annotation | Description |
+|------------|-------------|
+| `@ServerpodModel({customSql})` | Marks a class as a Serverpod model. |
+| `@PgVarchar(length)` | PostgreSQL `VARCHAR(n)` type. |
+| `@PgText()` | PostgreSQL `TEXT` type. |
+| `@PgInt()` | PostgreSQL `INTEGER` type. |
+| `@PgBigInt()` | PostgreSQL `BIGINT` type. |
+| `@PgBoolean()` | PostgreSQL `BOOLEAN` type. |
+| `@PgTimestamp()` | PostgreSQL `TIMESTAMP` type. |
+| `@PgTimestamptz()` | PostgreSQL `TIMESTAMPTZ` type. |
+| `@PgJson()` / `@PgJsonb()` | PostgreSQL `JSON` / `JSONB` types. |
+| `@PgUuid()` | PostgreSQL `UUID` type. |
+| `@PgNumeric(p, s)` | PostgreSQL `NUMERIC(precision, scale)`. |
+| `@PgPrimaryKey()` | Marks a field as the Primary Key. |
+| `@PgUnique()` | Adds a unique constraint. |
+| `@PgIndex({name})` | Creates a database index. |
+| `@PgForeignKey(table, col)`| Defines a foreign key relationship. |
+| `@PgDefault(value)` | Sets a default database value. |
+| `@PgCustomSql(sql)` | Custom SQL override for a specific field. |
+| `@Realtime()` | Enables realtime subscriptions for the model. |
 
-- `validate`: Check schema for errors.
-- `diff`: Show changes between current code and generated YAML.
-- `generate`: Generate Serverpod YAML files.
+---
 
-## Options
+## 🖥 CLI Commands
 
-- `--dry-run`: Show changes without writing files.
-- `--apply`: Skip confirmation prompt.
-- `--file=<path>`: Process a specific file.
+### Project Initialization
+- `create <name>`: Bootstraps a new project with Serverpod, Flutter, and Docker.
+- `ai "<prompt>"`: Generates models and endpoints from natural language.
+
+### Schema Management
+- `validate`: Checks your Dart models for errors or inconsistencies.
+- `diff`: Shows a preview of changes between Dart code and generated YAML.
+- `generate`: Translates Dart models into Serverpod `.spyaml.yaml` files.
+  - `--dry-run`: Preview changes without writing files.
+  - `--apply`: Skip the confirmation prompt.
+- `migration`: Generates versioned SQL migration files based on schema changes.
+
+### Code Generation
+- `auth`: Generates a complete Authentication system (JWT, Email/Password).
+- `admin`: Generates a Flutter Web Admin Dashboard for CRUD operations.
+- `client`: Generates a typed Flutter API client for your models.
+
+### Developer Tools
+- `watch`: Automatically regenerates schema on file changes.
+- `explain`: Describes your backend architecture in human language.
+- `impact`: Analyzes the impact of schema changes on the database.
+
+---
+
+## 🔌 Plugin System
+
+Extend the facilitator by implementing `FacilitatorPlugin`:
+
+```dart
+abstract class FacilitatorPlugin {
+  void register();
+}
+```
+
+Plugins can add custom CLI commands, new annotations, or specialized generators.
+
+---
+
+## 🧪 Testing
+
+Run the test suite to ensure everything is working correctly:
+
+```bash
+dart test
+```
+
+## ⚠️ Robustness & Safety
+
+1. **Zero Magic**: No hidden logic; everything is explicit and inspectable.
+2. **Deterministic**: Same input always produces the same output.
+3. **Dry-Run First**: Always supports `--dry-run` and diff previews.
+4. **Non-Destructive**: Never overwrites user code; generated code lives in `.generated/`.
+
+---
+
+Built with ❤️ for the Serverpod & Flutter community.
