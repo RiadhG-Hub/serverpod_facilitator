@@ -1,6 +1,6 @@
 name: serverpod_facilitator
 description: "A code-first schema system for Serverpod with a focus on developer trust and transparency."
-version: 1.0.2
+version: 1.0.3
 homepage: https://github.com/riadhgharbi/serverpod_facilitator
 repository: https://github.com/riadhgharbi/serverpod_facilitator
 
