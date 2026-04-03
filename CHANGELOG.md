@@ -1,3 +1,8 @@
+## 1.0.2
+
+- Enhanced CLI to display help text and all available commands when run without arguments.
+- Improved `ai` command to generate models following Google/Dart (Effective Dart) style guidelines, including documentation comments.
+
 ## 1.0.1
 
 - Renamed the CLI executable to `serverpod_facilitator` for better consistency.
