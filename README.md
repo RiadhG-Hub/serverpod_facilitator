@@ -2,13 +2,13 @@
 
 **The ultimate developer platform for Serverpod.**
 
-`serverpod_facilitator` transforms Serverpod into a top-tier backend framework competitor to Node.js ecosystems and Firebase. It provides a code-first, zero-magic experience with Prisma-level schema management and Firebase-level speed.
+`serverpod_facilitator` transforms Serverpod into a top-tier backend framework. It provides a code-first, zero-magic experience with declarative schema management and rapid development speed.
 
 ## 🎯 Objective
 
-- **Firebase-level speed** ⚡: Bootstrap and deploy in minutes.
-- **Prisma-level schema & migrations** 🧬: Type-safe, declarative database management.
-- **Node.js-level extensibility** 🔌: Powerful plugin system.
+- **Rapid Development** ⚡: Bootstrap and deploy in minutes.
+- **Declarative Schema & Migrations** 🧬: Type-safe, declarative database management.
+- **Powerful Extensibility** 🔌: Flexible plugin system.
 - **Flutter-first full-stack experience** 📱: Seamless integration with Flutter.
 
 ---
@@ -18,7 +18,7 @@
 - **CLI**: Unified command-line interface.
 - **Parser**: AST-based Dart parser for extracting models and annotations.
 - **Mapper**: Deterministic Dart → Serverpod YAML mapper.
-- **Diff Engine**: Prisma-like detection of schema changes.
+- **Diff Engine**: Powerful detection of schema changes.
 - **Migration Engine**: Automatic SQL migration generator.
 - **Generators**: Specialized generators for Auth, Admin Panels, and Clients.
 - **AI Tools**: Natural language backend generation.

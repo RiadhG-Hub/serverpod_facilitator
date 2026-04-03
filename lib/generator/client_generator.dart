@@ -21,20 +21,18 @@ class ClientGenerator {
         .writeln("import 'package:serverpod_flutter/serverpod_flutter.dart';");
     buffer.writeln();
     buffer.writeln("class ApiClient {");
-    buffer.writeln("  late final client;");
+    buffer.writeln("  late final dynamic client;");
     buffer.writeln();
     buffer.writeln("  ApiClient(String host) {");
     buffer.writeln("    // client = Client(host);");
     buffer.writeln("  }");
     buffer.writeln();
-
+    buffer.writeln("  // Generated methods for models");
     for (final model in models) {
       final className = model.name;
       final varName = className.toLowerCase();
-      buffer.writeln("  // Methods for $className");
-      buffer.writeln("  Future<List<dynamic>> get\${className}s() async {");
-      buffer
-          .writeln("    // return await client.$varName.get\${className}s();");
+      buffer.writeln("  Future<List<dynamic>> get${className}s() async {");
+      buffer.writeln("    // return await client.$varName.get${className}s();");
       buffer.writeln("    return [];");
       buffer.writeln("  }");
       buffer.writeln();
