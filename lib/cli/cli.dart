@@ -46,7 +46,7 @@ class FacilitatorCli {
     final command = results.command?.name;
 
     if (command == null) {
-      print('Usage: facilitator <command> [options]');
+      print('Usage: serverpod_facilitator <command> [options]');
       print(argParser.usage);
       return;
     }
@@ -250,7 +250,7 @@ CMD ["/app/bin/main"]
     print('✅ Project $projectName created successfully!');
     print('👉 Next steps:');
     print('   cd $projectName');
-    print('   facilitator generate');
+    print('   serverpod_facilitator generate');
   }
 
   Future<void> _handleMigration(

@@ -8,7 +8,7 @@ environment:
   sdk: ^3.0.0
 
 executables:
-  facilitator: facilitator
+  serverpod_facilitator: facilitator
 
 dependencies:
   analyzer: ^6.0.0

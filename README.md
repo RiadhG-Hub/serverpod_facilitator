@@ -41,7 +41,7 @@ dependencies:
 Bootstrap a complete Serverpod + Flutter project in under 1 minute:
 
 ```bash
-dart bin/facilitator.dart create my_awesome_app
+serverpod_facilitator create my_awesome_app
 ```
 
 ### 3. Define Your Models
@@ -80,10 +80,10 @@ class User {
 
 ```bash
 # Generate Serverpod YAML files
-dart bin/facilitator.dart generate --apply
+serverpod_facilitator generate --apply
 
 # Generate SQL migrations
-dart bin/facilitator.dart migration
+serverpod_facilitator migration
 ```
 
 ---
@@ -159,6 +159,15 @@ Run the test suite to ensure everything is working correctly:
 
 ```bash
 dart test
+```
+
+## 🌍 Global CLI Usage
+
+You can activate the CLI globally for use in any project:
+
+```bash
+dart pub global activate serverpod_facilitator
+serverpod_facilitator create my_app
 ```
 
 ## ⚠️ Robustness & Safety
