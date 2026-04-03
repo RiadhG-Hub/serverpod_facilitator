@@ -26,6 +26,16 @@ class FieldDefinition {
 
 abstract class AnnotationDefinition {}
 
+class RelationAnnotation extends AnnotationDefinition {
+  final String? name;
+  RelationAnnotation({this.name});
+}
+
+class ParentAnnotation extends AnnotationDefinition {
+  final String? relation;
+  ParentAnnotation({this.relation});
+}
+
 class VarcharAnnotation extends AnnotationDefinition {
   final int length;
   VarcharAnnotation(this.length);

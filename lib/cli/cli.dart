@@ -1,12 +1,12 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
+import 'package:watcher/watcher.dart';
+import 'package:yaml/yaml.dart';
 
 import '../diff/diff_engine.dart';
-import '../generator/admin_generator.dart';
-import '../generator/auth_generator.dart';
-import '../generator/client_generator.dart';
 import '../mapper/mapper.dart';
 import '../migration/migration_engine.dart';
 import '../models/schema.dart';
@@ -19,265 +19,198 @@ class FacilitatorCli {
   final _diffEngine = DiffEngine();
   final _validator = SchemaValidator();
   final _migrationEngine = MigrationEngine();
-  final _authGenerator = AuthGenerator();
-  final _adminGenerator = AdminGenerator();
-  final _clientGenerator = ClientGenerator();
 
   Future<void> run(List<String> args) async {
     final argParser = ArgParser()
-      ..addFlag('dry-run',
-          negatable: false, help: 'Show changes without applying them.')
-      ..addFlag('apply', negatable: false, help: 'Apply changes to files.')
-      ..addOption('file', help: 'Process a specific file.')
-      ..addCommand('create', ArgParser()..addOption('name', help: 'The name of the project.'))
-      ..addCommand('ai', ArgParser()..addOption('prompt', help: 'Prompt for backend generation.'))
-      ..addCommand('generate', ArgParser()..addFlag('dry-run', help: 'Show changes.'))
-      ..addCommand('diff', ArgParser()..addOption('target', help: 'Target schema to diff against.'))
-      ..addCommand('migration', ArgParser()..addOption('name', help: 'Migration name.'))
-      ..addCommand('client', ArgParser()..addFlag('force', help: 'Force generation.'))
-      ..addCommand('admin', ArgParser()..addFlag('force', help: 'Force generation.'))
-      ..addCommand('auth', ArgParser()..addFlag('force', help: 'Force generation.'))
-      ..addCommand('watch', ArgParser()..addOption('dir', help: 'Directory to watch.'))
-      ..addCommand('explain', ArgParser()..addOption('model', help: 'Model to explain.'))
-      ..addCommand('impact', ArgParser()..addOption('model', help: 'Model to check impact for.'))
-      ..addCommand('validate', ArgParser()..addFlag('strict', help: 'Strict validation.'));
+      ..addCommand(
+          'generate',
+          ArgParser()
+            ..addFlag('dry-run', negatable: false, help: 'Show changes.')
+            ..addFlag('apply',
+                negatable: false,
+                defaultsTo: true,
+                help: 'Apply changes to files.')
+            ..addFlag('serverpod',
+                negatable: false,
+                help: 'Run "serverpod generate" after facilitator.'))
+      ..addCommand(
+          'migration',
+          ArgParser()
+            ..addOption('name', help: 'Migration name.')
+            ..addFlag('serverpod',
+                negatable: false,
+                help: 'Run "serverpod generate" after migration.'))
+      ..addCommand(
+          'watch',
+          ArgParser()
+            ..addOption('dir',
+                abbr: 'd',
+                defaultsTo: 'lib/models',
+                help: 'Directory to watch.')
+            ..addFlag('serverpod',
+                negatable: false,
+                help: 'Run "serverpod generate" on each change.'))
+      ..addCommand('validate')
+      ..addCommand('diff');
 
     if (args.isEmpty) {
-      print('Usage: serverpod_facilitator <command> [options]');
-      print('\nAvailable commands:');
-      for (final command in argParser.commands.keys.toList()..sort()) {
-        final cmd = argParser.commands[command];
-        final help = cmd?.usage.split('\n').first ?? '';
-        print('  ${command.padRight(12)} $help');
-      }
-      print('\nGlobal options:');
-      print(argParser.usage);
+      _printUsage(argParser);
       return;
     }
 
-    final results = argParser.parse(args);
+    late final ArgResults results;
+    try {
+      results = argParser.parse(args);
+    } catch (e) {
+      print('Error: $e');
+      _printUsage(argParser);
+      return;
+    }
+
     final command = results.command?.name;
 
     if (command == null) {
-      print('Error: No command specified.');
-      print('Usage: serverpod_facilitator <command> [options]');
-      print('\nAvailable commands:');
-      for (final command in argParser.commands.keys) {
-        print('  $command');
-      }
+      _printUsage(argParser);
       return;
     }
 
-    final filePath = results['file'] as String?;
-    final filesToProcess = <File>[];
+    switch (command) {
+      case 'generate':
+        await _handleGenerate(
+          dryRun: results.command!['dry-run'],
+          apply: results.command!['apply'],
+          runServerpod: results.command!['serverpod'],
+        );
+        break;
+      case 'watch':
+        await _handleWatch(
+          directory: results.command!['dir'],
+          runServerpod: results.command!['serverpod'],
+        );
+        break;
+      case 'migration':
+        await _handleMigration(results.command!);
+        break;
+      case 'validate':
+        await _handleValidate();
+        break;
+      case 'diff':
+        await _handleDiff();
+        break;
+      default:
+        _printUsage(argParser);
+    }
+  }
 
-    if (filePath != null) {
-      final file = File(filePath);
-      if (await file.exists()) {
-        filesToProcess.add(file);
-      } else {
-        print('Error: File $filePath not found.');
-        return;
-      }
-    } else {
-      final dir = Directory('lib/models');
-      if (await dir.exists()) {
-        await for (final file in dir.list(recursive: true)) {
-          if (file is File && file.path.endsWith('.dart')) {
-            filesToProcess.add(file);
-          }
+  void _printUsage(ArgParser argParser) {
+    print('🚀 Serverpod Facilitator - Code-first schemas for Serverpod');
+    print('\nUsage: serverpod_facilitator <command> [options]');
+    print('\nAvailable commands:');
+    for (final command in argParser.commands.keys.toList()..sort()) {
+      print('  ${command.padRight(12)}');
+    }
+  }
+
+  Future<List<ModelDefinition>> _processFiles({String? directory}) async {
+    final filesToProcess = <File>[];
+    final dirPath = directory ?? 'lib/models';
+    final dir = Directory(dirPath);
+
+    if (await dir.exists()) {
+      await for (final file in dir.list(recursive: true)) {
+        if (file is File && file.path.endsWith('.dart')) {
+          filesToProcess.add(file);
         }
       }
     }
 
     if (filesToProcess.isEmpty) {
-      print('No Dart files found to process.');
-      return;
+      return [];
     }
 
-    final newModels = <ModelDefinition>[];
+    final models = <ModelDefinition>[];
     for (final file in filesToProcess) {
       final content = await file.readAsString();
-      newModels.addAll(_parser.parseFile(content));
+      models.addAll(_parser.parseFile(content));
     }
-
-    switch (command) {
-      case 'create':
-        await _handleCreate(results.command!);
-        break;
-      case 'ai':
-        await _handleAi(results.command!);
-        break;
-      case 'validate':
-        _handleValidate(newModels);
-        break;
-      case 'diff':
-        await _handleDiff(newModels);
-        break;
-      case 'generate':
-        await _handleGenerate(newModels,
-            dryRun: results['dry-run'], apply: results['apply']);
-        break;
-      case 'migration':
-        await _handleMigration(newModels, results.command!);
-        break;
-      case 'auth':
-        await _handleAuth(newModels, results.command!);
-        break;
-      case 'admin':
-        await _handleAdmin(newModels, results.command!);
-        break;
-      case 'client':
-        await _handleClient(newModels, results.command!);
-        break;
-      case 'watch':
-        await _handleWatch(newModels);
-        break;
-      case 'explain':
-        _handleExplain(newModels);
-        break;
-      case 'impact':
-        _handleImpact(newModels);
-        break;
-    }
+    return models;
   }
 
-  Future<void> _handleAi(ArgResults command) async {
-    final prompt = command.arguments.isNotEmpty
-        ? command.arguments.join(' ')
-        : 'social media app';
-    print('🤖 AI: Generating backend for: $prompt...');
-
-    // AI Mock Logic: Depending on prompt, create more models
-    if (prompt.contains('social')) {
-      final postModel = File('lib/models/post.dart');
-      await postModel.writeAsString('''
-import 'package:serverpod_facilitator/annotations/annotations.dart';
-
-/// A model representing a post in the social media application.
-/// Generated following Google's Dart style guidelines.
-@ServerpodModel()
-class Post {
-  /// The unique identifier for the post.
-  @PgPrimaryKey()
-  int? id;
-  
-  /// The main text content of the post.
-  @PgText()
-  String content;
-  
-  /// The timestamp when the post was created.
-  @PgTimestamp()
-  DateTime postedAt;
-  
-  /// The ID of the user who created this post.
-  @PgForeignKey('user', 'id')
-  int userId;
-
-  Post({
-    this.id,
-    required this.content,
-    required this.postedAt,
-    required this.userId,
-  });
-}
-''');
-      print('✅ AI generated Model: lib/models/post.dart');
-    }
-    print('✅ AI backend generation complete.');
-  }
-
-  Future<void> _handleCreate(ArgResults command) async {
-    final projectName =
-        command.arguments.isNotEmpty ? command.arguments.first : 'my_app';
-    print('🚀 Creating project: $projectName...');
-
-    final projectDir = Directory(projectName);
-    if (await projectDir.exists()) {
-      print('Error: Directory $projectName already exists.');
+  Future<void> _handleGenerate({
+    bool dryRun = false,
+    bool apply = true,
+    bool runServerpod = false,
+  }) async {
+    final models = await _processFiles();
+    if (models.isEmpty) {
+      print('No models found in lib/models.');
       return;
     }
 
-    await projectDir.create();
+    final validation = _validator.validate(models);
+    if (!validation.isValid) {
+      print('❌ Schema validation failed:');
+      for (final error in validation.errors) {
+        print('  - $error');
+      }
+      return;
+    }
 
-    // Create basic structure
-    await Directory(p.join(projectName, 'lib/models')).create(recursive: true);
-    await Directory(p.join(projectName, 'lib/endpoints'))
-        .create(recursive: true);
-    await Directory(p.join(projectName, '.generated')).create(recursive: true);
-    await Directory(p.join(projectName, 'docker')).create(recursive: true);
+    final oldModels = await _loadPreviousModels();
+    final diff = _diffEngine.diff(oldModels, models);
 
-    // Create a sample model
-    final userModel = File(p.join(projectName, 'lib/models/user.dart'));
-    await userModel.writeAsString('''
-import 'package:serverpod_facilitator/annotations/annotations.dart';
+    if (!diff.hasChanges) {
+      print('No changes detected. Output is up to date.');
+      if (runServerpod) await _runServerpodGenerate();
+      return;
+    }
 
-@ServerpodModel()
-class User {
-  @PgPrimaryKey()
-  int? id;
-  
-  @PgVarchar(255)
-  @PgUnique()
-  String email;
-  
-  @PgText()
-  String name;
-  
-  @PgTimestamp()
-  DateTime createdAt;
+    _printDiff(diff);
 
-  User({
-    this.id,
-    required this.email,
-    required this.name,
-    required this.createdAt,
-  });
-}
-''');
+    if (dryRun) {
+      print('\nDry-run mode: No files written.');
+      return;
+    }
 
-    // Create pubspec.yaml
-    final pubspec = File(p.join(projectName, 'pubspec.yaml'));
-    await pubspec.writeAsString('''
-name: $projectName
-description: A new Serverpod project created with Facilitator.
-version: 1.0.0
-publish_to: none
+    if (!apply) {
+      stdout.write('\nDo you want to apply these changes? (y/N): ');
+      final input = stdin.readLineSync();
+      if (input?.toLowerCase() != 'y') {
+        print('Aborted.');
+        return;
+      }
+    }
 
-environment:
-  sdk: '>=3.0.0 <4.0.0'
+    await _writeGeneratedFiles(models);
+    print('✅ Serverpod YAML models updated in .generated/');
 
-dependencies:
-  serverpod: ^1.2.0
-  serverpod_facilitator:
-    path: ../ # Prototype assumption
-
-dev_dependencies:
-  serverpod_cli: ^1.2.0
-''');
-
-    // Create Dockerfile
-    final dockerfile = File(p.join(projectName, 'docker/Dockerfile'));
-    await dockerfile.writeAsString('''
-FROM dart:stable AS build
-WORKDIR /app
-COPY . .
-RUN dart pub get
-RUN dart compile exe bin/main.dart -o bin/main
-
-FROM debian:bookworm-slim
-COPY --from=build /app/bin/main /app/bin/main
-CMD ["/app/bin/main"]
-''');
-
-    print('✅ Project $projectName created successfully!');
-    print('👉 Next steps:');
-    print('   cd $projectName');
-    print('   serverpod_facilitator generate');
+    if (runServerpod) {
+      await _runServerpodGenerate();
+    }
   }
 
-  Future<void> _handleMigration(
-      List<ModelDefinition> models, ArgResults command) async {
+  Future<void> _handleWatch({
+    required String directory,
+    bool runServerpod = false,
+  }) async {
+    print('🔁 Watch mode started on $directory. Press Ctrl+C to stop.');
+
+    final watcher = DirectoryWatcher(p.absolute(directory));
+    Timer? debounce;
+
+    await for (final event in watcher.events) {
+      if (event.path.endsWith('.dart')) {
+        debounce?.cancel();
+        debounce = Timer(const Duration(milliseconds: 500), () async {
+          print('File changed: ${event.path}. Regenerating...');
+          await _handleGenerate(apply: true, runServerpod: runServerpod);
+        });
+      }
+    }
+  }
+
+  Future<void> _handleMigration(ArgResults command) async {
+    final models = await _processFiles();
     print('🧬 Generating migrations...');
     final oldModels = await _loadPreviousModels();
     final diff = _diffEngine.diff(oldModels, models);
@@ -301,47 +234,14 @@ CMD ["/app/bin/main"]
     await File(filePath).writeAsString(sql);
 
     print('✅ Migration generated: $filePath');
-  }
 
-  Future<void> _handleAuth(
-      List<ModelDefinition> models, ArgResults command) async {
-    final projectPath = '.';
-    await _authGenerator.generate(models, projectPath);
-  }
-
-  Future<void> _handleAdmin(
-      List<ModelDefinition> models, ArgResults command) async {
-    final projectPath = '.';
-    await _adminGenerator.generate(models, projectPath);
-  }
-
-  Future<void> _handleClient(
-      List<ModelDefinition> models, ArgResults command) async {
-    final projectPath = '.';
-    await _clientGenerator.generate(models, projectPath);
-  }
-
-  Future<void> _handleWatch(List<ModelDefinition> models) async {
-    print('🔁 Watch mode started. Press Ctrl+C to stop.');
-    // Implementation placeholder
-  }
-
-  void _handleExplain(List<ModelDefinition> models) {
-    print('🔎 Project Explanation:');
-    for (final model in models) {
-      print('Model ${model.name} has ${model.fields.length} fields.');
+    if (command['serverpod']) {
+      await _runServerpodGenerate();
     }
   }
 
-  void _handleImpact(List<ModelDefinition> models) {
-    print('🔎 Impact Analysis:');
-    print('Generating these changes will affect the following tables:');
-    for (final model in models) {
-      print('  - ${_toSnakeCase(model.name)}');
-    }
-  }
-
-  void _handleValidate(List<ModelDefinition> models) {
+  Future<void> _handleValidate() async {
+    final models = await _processFiles();
     final result = _validator.validate(models);
     if (result.isValid) {
       print('✅ Schema is valid.');
@@ -353,46 +253,23 @@ CMD ["/app/bin/main"]
     }
   }
 
-  Future<void> _handleDiff(List<ModelDefinition> newModels) async {
+  Future<void> _handleDiff() async {
+    final models = await _processFiles();
     final oldModels = await _loadPreviousModels();
-    final diff = _diffEngine.diff(oldModels, newModels);
+    final diff = _diffEngine.diff(oldModels, models);
     _printDiff(diff);
   }
 
-  Future<void> _handleGenerate(List<ModelDefinition> models,
-      {bool dryRun = false, bool apply = false}) async {
-    final validation = _validator.validate(models);
-    if (!validation.isValid) {
-      _handleValidate(models);
-      return;
+  Future<void> _runServerpodGenerate() async {
+    print('🏃 Running "serverpod generate"...');
+    final result = await Process.run('serverpod', ['generate']);
+    if (result.exitCode == 0) {
+      print(result.stdout);
+      print('✅ Serverpod generation complete.');
+    } else {
+      print(result.stderr);
+      print('❌ Serverpod generation failed.');
     }
-
-    final oldModels = await _loadPreviousModels();
-    final diff = _diffEngine.diff(oldModels, models);
-
-    if (!diff.hasChanges) {
-      print('No changes detected. Output is up to date.');
-      return;
-    }
-
-    _printDiff(diff);
-
-    if (dryRun) {
-      print('\nDry-run mode: No files written.');
-      return;
-    }
-
-    if (!apply) {
-      stdout.write('\nDo you want to apply these changes? (y/N): ');
-      final input = stdin.readLineSync();
-      if (input?.toLowerCase() != 'y') {
-        print('Aborted.');
-        return;
-      }
-    }
-
-    await _writeGeneratedFiles(models);
-    print('✅ Files generated successfully in .generated/');
   }
 
   void _printDiff(SchemaDiff diff) {
@@ -435,57 +312,48 @@ CMD ["/app/bin/main"]
     return models;
   }
 
-  ModelDefinition _parseYamlToModel(String yaml) {
-    // Basic parser for our generated YAML
-    final lines = yaml.split('\n');
-    String name = '';
+  ModelDefinition _parseYamlToModel(String content) {
+    final yaml = loadYaml(content) as YamlMap;
+    final className = yaml['class'] as String;
     final fields = <FieldDefinition>[];
 
-    bool inFields = false;
-    for (var line in lines) {
-      if (line.startsWith('class: ')) {
-        name = line.substring(7).trim();
-      } else if (line.startsWith('fields:')) {
-        inFields = true;
-      } else if (inFields && line.startsWith('  ')) {
-        if (line.startsWith('    '))
-          continue; // Skip indented properties for now
-        final parts = line.trim().split(':');
-        if (parts.length >= 2) {
-          final fieldName = parts[0].trim();
-          final typePart = parts[1].trim();
-          final isNullable = typePart.endsWith('?');
-          final baseType = isNullable
-              ? typePart.substring(0, typePart.length - 1)
-              : typePart;
+    final yamlFields = yaml['fields'] as YamlMap;
+    yamlFields.forEach((key, value) {
+      final typeStr = value.toString();
+      final isNullable = typeStr.endsWith('?');
+      final dartType = isNullable
+          ? typeStr.substring(0, typeStr.indexOf('?'))
+          : (typeStr.contains(',')
+              ? typeStr.substring(0, typeStr.indexOf(','))
+              : typeStr);
 
-          fields.add(FieldDefinition(
-            name: fieldName,
-            dartType: baseType.split(',').first.trim(),
-            isNullable: isNullable,
-          ));
-        }
-      } else if (line.trim().isEmpty) {
-        continue;
-      } else {
-        inFields = false;
-      }
-    }
+      fields.add(FieldDefinition(
+        name: key as String,
+        dartType: dartType.trim(),
+        isNullable: isNullable,
+      ));
+    });
 
-    return ModelDefinition(name: name, fields: fields);
+    return ModelDefinition(name: className, fields: fields);
   }
 
   Future<void> _writeGeneratedFiles(List<ModelDefinition> models) async {
     final dir = Directory('.generated');
     if (!await dir.exists()) {
-      await dir.create();
+      await dir.create(recursive: true);
+    }
+
+    // Clean old generated files
+    await for (final file in dir.list()) {
+      if (file is File && file.path.endsWith('.spyaml.yaml')) {
+        await file.delete();
+      }
     }
 
     for (final model in models) {
       final yaml = _mapper.mapToYaml(model);
-      final file =
-          File(p.join('.generated', '${_toSnakeCase(model.name)}.spyaml.yaml'));
-      await file.writeAsString(yaml);
+      final fileName = '${_toSnakeCase(model.name)}.spyaml.yaml';
+      await File(p.join(dir.path, fileName)).writeAsString(yaml);
     }
   }
 

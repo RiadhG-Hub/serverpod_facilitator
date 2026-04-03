@@ -82,6 +82,16 @@ class PgTimestamptz {
   const PgTimestamptz();
 }
 
+class Relation {
+  final String? name;
+  const Relation({this.name});
+}
+
+class Parent {
+  final String? relation;
+  const Parent({this.relation});
+}
+
 class PgCustomSql {
   final String sql;
   const PgCustomSql(this.sql);

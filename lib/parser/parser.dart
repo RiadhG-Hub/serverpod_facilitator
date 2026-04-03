@@ -173,6 +173,33 @@ class _SchemaVisitor extends RecursiveAstVisitor<void> {
               if (sql != null) results.add(CustomSqlAnnotation(sql));
             }
             break;
+          case 'Relation':
+            String? relationName;
+            if (args != null && args.isNotEmpty) {
+              final firstArg = args.first;
+              if (firstArg is NamedExpression &&
+                  firstArg.name.label.name == 'name') {
+                relationName =
+                    (firstArg.expression as StringLiteral).stringValue;
+              } else if (firstArg is StringLiteral) {
+                relationName = firstArg.stringValue;
+              }
+            }
+            results.add(RelationAnnotation(name: relationName));
+            break;
+          case 'Parent':
+            String? relation;
+            if (args != null && args.isNotEmpty) {
+              final firstArg = args.first;
+              if (firstArg is NamedExpression &&
+                  firstArg.name.label.name == 'relation') {
+                relation = (firstArg.expression as StringLiteral).stringValue;
+              } else if (firstArg is StringLiteral) {
+                relation = firstArg.stringValue;
+              }
+            }
+            results.add(ParentAnnotation(relation: relation));
+            break;
         }
       } catch (e) {
         // Skip invalid annotations for now

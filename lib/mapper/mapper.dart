@@ -44,13 +44,24 @@ class YamlMapper {
       if (ann is DefaultAnnotation) {
         annotations.add('default=${ann.value}');
       }
-      // Serverpod YAML supports some database-specific types directly or via database:
+      if (ann is RelationAnnotation) {
+        if (ann.name != null) {
+          annotations.add('relation=${ann.name}');
+        } else {
+          annotations.add('relation');
+        }
+      }
+      if (ann is ParentAnnotation) {
+        if (ann.relation != null) {
+          annotations.add('parent=${ann.relation}');
+        } else {
+          annotations.add('parent');
+        }
+      }
     }
 
     if (annotations.isNotEmpty) {
-      // This part depends on exact Serverpod YAML format for database overrides
-      // For simplicity, we just return the type.
-      // In a real implementation, we'd add 'database: ...'
+      return '$type, ${annotations.join(', ')}';
     }
 
     return type;
