@@ -1,0 +1,14 @@
+class: Profile
+table: profile
+fields:
+  name: String, database=varchar(255)
+  bio: String, database=text
+  points: int, database=bigint
+  metadata: Map<String, dynamic>, database=jsonb
+  createdAt: DateTime
+indexes:
+  profile_bio_unique:
+    fields: bio
+    unique: true
+customSql:
+  - CREATE INDEX profile_bio_trgm_idx ON profile USING gin (bio gin_trgm_ops);
