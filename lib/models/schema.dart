@@ -71,6 +71,14 @@ class TimestampAnnotation extends AnnotationDefinition {}
 
 class TimestamptzAnnotation extends AnnotationDefinition {}
 
+class IntAnnotation extends AnnotationDefinition {}
+
+class BooleanAnnotation extends AnnotationDefinition {}
+
+class EnumAnnotation extends AnnotationDefinition {}
+
+class RealtimeAnnotation extends AnnotationDefinition {}
+
 class CustomSqlAnnotation extends AnnotationDefinition {
   final String sql;
   CustomSqlAnnotation(this.sql);

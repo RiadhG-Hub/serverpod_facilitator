@@ -94,6 +94,18 @@ class _SchemaVisitor extends RecursiveAstVisitor<void> {
           case 'PgText':
             results.add(TextAnnotation());
             break;
+          case 'PgInt':
+            results.add(IntAnnotation());
+            break;
+          case 'PgBoolean':
+            results.add(BooleanAnnotation());
+            break;
+          case 'PgEnum':
+            results.add(EnumAnnotation());
+            break;
+          case 'Realtime':
+            results.add(RealtimeAnnotation());
+            break;
           case 'PgUnique':
             results.add(UniqueAnnotation());
             break;

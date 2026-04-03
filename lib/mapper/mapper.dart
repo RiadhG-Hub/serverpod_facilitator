@@ -62,16 +62,19 @@ class YamlMapper {
       if (ann is VarcharAnnotation)
         return 'String, database=varchar(${ann.length})';
       if (ann is TextAnnotation) return 'String, database=text';
+      if (ann is IntAnnotation) return 'int, database=integer';
       if (ann is BigIntAnnotation) return 'int, database=bigint';
+      if (ann is BooleanAnnotation) return 'bool, database=boolean';
+      if (ann is EnumAnnotation) return 'enum, database=enum';
       if (ann is JsonAnnotation) return 'Map<String, dynamic>, database=json';
       if (ann is JsonbAnnotation) return 'Map<String, dynamic>, database=jsonb';
       if (ann is UuidAnnotation) return 'String, database=uuid';
       if (ann is NumericAnnotation)
         return 'double, database=numeric(${ann.precision}, ${ann.scale})';
       if (ann is TimestampAnnotation) return 'DateTime, database=timestamp';
-      if (ann is TimestamptzAnnotation)
-        return 'DateTime, database=timestamptz';
-      if (ann is CustomSqlAnnotation) return '${field.dartType}, database=${ann.sql}';
+      if (ann is TimestamptzAnnotation) return 'DateTime, database=timestamptz';
+      if (ann is CustomSqlAnnotation)
+        return '${field.dartType}, database=${ann.sql}';
     }
 
     switch (field.dartType) {

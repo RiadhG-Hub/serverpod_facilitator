@@ -1,7 +1,5 @@
 
-
 import '../models/schema.dart';
-import 'package:collection/collection.dart';
 
 class SchemaDiff {
   final List<String> addedModels = [];

@@ -1,0 +1,7 @@
+class: Post
+table: post
+fields:
+  id: int?
+  content: String, database=text
+  postedAt: DateTime, database=timestamp
+  userId: int

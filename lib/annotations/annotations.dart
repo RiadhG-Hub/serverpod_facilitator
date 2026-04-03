@@ -12,8 +12,32 @@ class PgText {
   const PgText();
 }
 
-class PgUnique {
-  const PgUnique();
+class PgInt {
+  const PgInt();
+}
+
+class PgBigInt {
+  const PgBigInt();
+}
+
+class PgBoolean {
+  const PgBoolean();
+}
+
+class PgTimestamp {
+  const PgTimestamp();
+}
+
+class PgJson {
+  const PgJson();
+}
+
+class PgJsonb {
+  const PgJsonb();
+}
+
+class PgEnum {
+  const PgEnum();
 }
 
 class PgIndex {
@@ -21,9 +45,8 @@ class PgIndex {
   const PgIndex({this.name});
 }
 
-class PgDefault {
-  final String value;
-  const PgDefault(this.value);
+class PgUnique {
+  const PgUnique();
 }
 
 class PgPrimaryKey {
@@ -36,16 +59,13 @@ class PgForeignKey {
   const PgForeignKey(this.table, this.column);
 }
 
-class PgBigInt {
-  const PgBigInt();
+class PgDefault {
+  final String value;
+  const PgDefault(this.value);
 }
 
-class PgJson {
-  const PgJson();
-}
-
-class PgJsonb {
-  const PgJsonb();
+class Realtime {
+  const Realtime();
 }
 
 class PgUuid {
@@ -56,10 +76,6 @@ class PgNumeric {
   final int precision;
   final int scale;
   const PgNumeric(this.precision, this.scale);
-}
-
-class PgTimestamp {
-  const PgTimestamp();
 }
 
 class PgTimestamptz {

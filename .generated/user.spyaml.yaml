@@ -1,0 +1,11 @@
+class: User
+table: user
+fields:
+  id: int?
+  email: String, database=varchar(255)
+  name: String, database=text
+  createdAt: DateTime, database=timestamp
+indexes:
+  user_email_unique:
+    fields: email
+    unique: true
