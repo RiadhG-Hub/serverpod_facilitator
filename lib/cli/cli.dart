@@ -29,25 +29,42 @@ class FacilitatorCli {
           negatable: false, help: 'Show changes without applying them.')
       ..addFlag('apply', negatable: false, help: 'Apply changes to files.')
       ..addOption('file', help: 'Process a specific file.')
-      ..addCommand('create')
-      ..addCommand('ai')
-      ..addCommand('generate')
-      ..addCommand('diff')
-      ..addCommand('migration')
-      ..addCommand('client')
-      ..addCommand('admin')
-      ..addCommand('auth')
-      ..addCommand('watch')
-      ..addCommand('explain')
-      ..addCommand('impact')
-      ..addCommand('validate');
+      ..addCommand('create', ArgParser()..addOption('name', help: 'The name of the project.'))
+      ..addCommand('ai', ArgParser()..addOption('prompt', help: 'Prompt for backend generation.'))
+      ..addCommand('generate', ArgParser()..addFlag('dry-run', help: 'Show changes.'))
+      ..addCommand('diff', ArgParser()..addOption('target', help: 'Target schema to diff against.'))
+      ..addCommand('migration', ArgParser()..addOption('name', help: 'Migration name.'))
+      ..addCommand('client', ArgParser()..addFlag('force', help: 'Force generation.'))
+      ..addCommand('admin', ArgParser()..addFlag('force', help: 'Force generation.'))
+      ..addCommand('auth', ArgParser()..addFlag('force', help: 'Force generation.'))
+      ..addCommand('watch', ArgParser()..addOption('dir', help: 'Directory to watch.'))
+      ..addCommand('explain', ArgParser()..addOption('model', help: 'Model to explain.'))
+      ..addCommand('impact', ArgParser()..addOption('model', help: 'Model to check impact for.'))
+      ..addCommand('validate', ArgParser()..addFlag('strict', help: 'Strict validation.'));
+
+    if (args.isEmpty) {
+      print('Usage: serverpod_facilitator <command> [options]');
+      print('\nAvailable commands:');
+      for (final command in argParser.commands.keys.toList()..sort()) {
+        final cmd = argParser.commands[command];
+        final help = cmd?.usage.split('\n').first ?? '';
+        print('  ${command.padRight(12)} $help');
+      }
+      print('\nGlobal options:');
+      print(argParser.usage);
+      return;
+    }
 
     final results = argParser.parse(args);
     final command = results.command?.name;
 
     if (command == null) {
+      print('Error: No command specified.');
       print('Usage: serverpod_facilitator <command> [options]');
-      print(argParser.usage);
+      print('\nAvailable commands:');
+      for (final command in argParser.commands.keys) {
+        print('  $command');
+      }
       return;
     }
 
@@ -127,7 +144,7 @@ class FacilitatorCli {
 
   Future<void> _handleAi(ArgResults command) async {
     final prompt = command.arguments.isNotEmpty
-        ? command.arguments.first
+        ? command.arguments.join(' ')
         : 'social media app';
     print('🤖 AI: Generating backend for: $prompt...');
 
@@ -137,17 +154,23 @@ class FacilitatorCli {
       await postModel.writeAsString('''
 import 'package:serverpod_facilitator/annotations/annotations.dart';
 
+/// A model representing a post in the social media application.
+/// Generated following Google's Dart style guidelines.
 @ServerpodModel()
 class Post {
+  /// The unique identifier for the post.
   @PgPrimaryKey()
   int? id;
   
+  /// The main text content of the post.
   @PgText()
   String content;
   
+  /// The timestamp when the post was created.
   @PgTimestamp()
   DateTime postedAt;
   
+  /// The ID of the user who created this post.
   @PgForeignKey('user', 'id')
   int userId;
 
