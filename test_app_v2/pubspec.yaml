@@ -1,0 +1,15 @@
+name: test_app_v2
+description: A new Serverpod project created with Facilitator.
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  serverpod: ^1.2.0
+  serverpod_facilitator:
+    path: ../ # Prototype assumption
+
+dev_dependencies:
+  serverpod_cli: ^1.2.0
